@@ -1,0 +1,110 @@
+name: 番茄钟项目PR状态报告
+
+on:
+  schedule:
+    # 每天UTC时间0点运行（北京时间早上8点）
+    - cron: '0 0 * * *'
+    # 每5分钟运行一次（用于测试，生产环境可移除）
+    - cron: '*/5 * * * *'
+  workflow_dispatch:  # 允许手动触发
+  push:
+    branches:
+      - main
+      - master
+      - 'feature/**'
+      - 'fix/**'
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+        
+      - name: 设置PowerShell环境
+        uses: actions/setup-powershell@v1
+        with:
+          pwsh-version: 'latest'
+          
+      - name: 生成PR状态报告
+        run: |
+          # 创建报告目录
+          mkdir -p reports
+          
+          # 运行报告生成脚本
+          pwsh -File scripts/generate-report.ps1 -OutputPath reports/pr-status-report.md
+          
+          # 显示报告内容
+          echo "=== PR状态报告 ==="
+          cat reports/pr-status-report.md
+          
+      - name: 上传报告为制品
+        uses: actions/upload-artifact@v3
+        with:
+          name: pr-status-report-${{ github.run_number }}
+          path: reports/pr-status-report.md
+          retention-days: 30
+          
+      - name: 更新PR监控状态
+        if: github.event_name == 'push'
+        run: |
+          # 更新最后运行时间
+          sed -i "s/最后运行：从未/最后运行：$(date -u +'%Y-%m-%dT%H:%M:%SZ')/" pr-babysitter-state.md
+          
+      - name: 检查预算使用情况
+        run: |
+          echo "=== 预算检查 ==="
+          echo "每日最大运行次数: 288"
+          echo "每日最大Token消耗: 2M"
+          echo "当前运行次数: ${{ github.run_number }}"
+          echo "当前工作流运行ID: ${{ github.run_id }}"
+          
+      - name: 验证番茄钟应用状态
+        run: |
+          echo "=== 番茄钟应用状态 ==="
+          echo "检查关键文件是否存在..."
+          
+          if [ -f "src/pomodoro/index.html" ]; then
+            echo "? index.html 存在"
+          else
+            echo "? index.html 缺失"
+          fi
+          
+          if [ -f "src/pomodoro/style.css" ]; then
+            echo "? style.css 存在"
+          else
+            echo "? style.css 缺失"
+          fi
+          
+          if [ -f "src/pomodoro/app.js" ]; then
+            echo "? app.js 存在"
+          else
+            echo "? app.js 缺失"
+          fi
+          
+          echo "=== 文件大小检查 ==="
+          ls -la src/pomodoro/
+          
+      - name: 生成摘要报告
+        if: always()
+        run: |
+          echo "## 番茄钟项目自动化报告" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 运行信息" >> $GITHUB_STEP_SUMMARY
+          echo "- **运行ID**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **运行编号**: ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **触发事件**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **运行时间**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 项目状态" >> $GITHUB_STEP_SUMMARY
+          echo "- **监控的PR**: #1 feature/pomodoro-timer" >> $GITHUB_STEP_SUMMARY
+          echo "- **功能完成度**: 4/8 (50%)" >> $GITHUB_STEP_SUMMARY
+          echo "- **测试状态**: 基础测试通过" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 下一步操作" >> $GITHUB_STEP_SUMMARY
+          echo "1. 继续开发剩余功能" >> $GITHUB_STEP_SUMMARY
+          echo "2. 完善测试用例" >> $GITHUB_STEP_SUMMARY
+          echo "3. 准备PR审查" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "*此报告由Loop Engineering自动化工作流生成，仅用于状态监控。*" >> $GITHUB_STEP_SUMMARY

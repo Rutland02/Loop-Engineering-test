@@ -1,0 +1,13 @@
+{
+  "goal": "开发完整的番茄钟应用",
+  "pattern": "feature-development",
+  "level": "L2",
+  "project": "pomodoro-timer",
+  "created_at": "2026-07-20T21:15:00Z",
+  "budget": {
+    "max_tokens": 500000,
+    "max_iterations": 5,
+    "max_attempts_per_item": 3
+  },
+  "attempts": []
+}

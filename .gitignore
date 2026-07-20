@@ -20,4 +20,11 @@ Thumbs.db
 
 # 测试报告
 test-reports/
+test-results/
 coverage/
+
+# Playwright
+playwright-report/
+
+# 生成的报告
+reports/
